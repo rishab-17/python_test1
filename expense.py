@@ -2,12 +2,25 @@ import shelve
 import os
 import json
 
-# Load configuration from config.json
-with open('config.json') as config_file:
-    config = json.load(config_file)
+# Path to config.json
+config_path = os.path.join(os.path.dirname(__file__), 'config.json')
 
-data_directory = config['data_directory']
-database_file = config['database_file']
+# Load the config file
+try:
+    with open(config_path) as config_file:
+        config = json.load(config_file)
+        data_directory = config['data_directory']
+        database_file = config['database_file']
+except FileNotFoundError:
+    print(f"Error: {config_path} not found.")
+    data_directory = 'data/'
+    database_file = 'datastore.db'
+except json.JSONDecodeError as e:
+    print(f"Error: Invalid JSON format in {config_path}: {e}")
+
+# Use the loaded values
+print(f"Data Directory: {data_directory}, Database File: {database_file}")
+
 
 # Ensure the data directory exists
 if not os.path.exists(data_directory):
