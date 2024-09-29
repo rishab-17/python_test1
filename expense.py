@@ -1,9 +1,17 @@
 import shelve
 import os
+import json
 
-# Ensure the 'data' directory exists
-if not os.path.exists('data'):
-    os.makedirs('data')
+# Load configuration from config.json
+with open('config.json') as config_file:
+    config = json.load(config_file)
+
+data_directory = config['data_directory']
+database_file = config['database_file']
+
+# Ensure the data directory exists
+if not os.path.exists(data_directory):
+    os.makedirs(data_directory)
 
 class Expense:
     def __init__(self, amount, category, date):
@@ -16,7 +24,8 @@ class Expense:
 
 # Function to save an expense to the shelve database
 def save_expense(expense):
-    with shelve.open('data/datastore.db', writeback=True) as db:
+    db_path = os.path.join(data_directory, database_file)
+    with shelve.open(db_path, writeback=True) as db:
         if 'expenses' not in db:
             db['expenses'] = []  # Initialize an empty list if it doesn't exist
         db['expenses'].append(expense)
@@ -24,5 +33,6 @@ def save_expense(expense):
 
 # Function to load all expenses from the shelve database
 def load_expenses():
-    with shelve.open('data/datastore.db') as db:
+    db_path = os.path.join(data_directory, database_file)
+    with shelve.open(db_path) as db:
         return db.get('expenses', [])

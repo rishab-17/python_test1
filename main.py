@@ -1,6 +1,5 @@
 import argparse
 from expense import Expense, save_expense, load_expenses
-from income import Income
 from budget import Budget
 from report import generate_monthly_report, plot_ascii_bar_chart
 
