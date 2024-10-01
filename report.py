@@ -8,4 +8,5 @@ def generate_monthly_report(expenses):
 
 def plot_ascii_bar_chart(data):
     for category, amount in data.items():
-        print(f"{category}: {'#' * int(amount // 10)}")
+        bar_length = int(amount // 5)  # Adjust the divisor to change the scaling of the bar
+        print(f"{category}: {'#' * bar_length}  ({amount})")

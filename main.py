@@ -8,7 +8,7 @@ def main():
     parser = argparse.ArgumentParser(description='Personal Finance Manager')
     
     # Define the commands that the user can use
-    parser.add_argument('command', choices=['add_expense', 'view_expenses', 'set_budget'])
+    parser.add_argument('command', choices=['add_expense', 'view_expenses', 'set_budget', 'view_report'])
     
     # Parse the command-line arguments
     args = parser.parse_args()
@@ -50,6 +50,22 @@ def main():
             print(f"Warning: You have exceeded your {period} budget for {category}!")
         else:
             print(f"Your {period} budget for {category} is within limits.")
+
+    elif args.command == 'view_report':
+        print("Generating monthly expense report...")
+        
+        # Load expenses from the database
+        expenses = load_expenses()
+        if not expenses:
+            print("No expenses recorded.")
+            return
+        
+        # Generate a monthly report (or adjust for other periods as needed)
+        report_data = generate_monthly_report(expenses)
+        
+        # Display the report in ASCII bar chart form
+        print("\nExpense Report (by category):")
+        plot_ascii_bar_chart(report_data)
     
 if __name__ == "__main__":
     main()
