@@ -29,7 +29,11 @@ class BudgetHandler:
         with shelve.open(self.db_file) as db:
             budgets = db.get('budgets', [])
             budgets.append(budget)
-            db['budgets'] = budgets
+            db['budgets'] = budgets  # Save back to shelve
+            
+            print(f"Added Budget: {budget}")  # Debugging statement
+            print(f"Total Budgets in DB: {len(budgets)}")  # Check the total number of budgets after adding
+            
         self.saveToCsv(budget)
     
     def saveToCsv(self, budget: Budget):
@@ -40,7 +44,8 @@ class BudgetHandler:
     def viewBudgets(self, filter_by=None, filter_value=None):
         with shelve.open(self.db_file) as db:
             budgets = db.get('budgets', [])
-        
+            print(f"Budgets retrieved from DB: {len(budgets)}")  # Debugging statement
+            
         filtered_budgets = []
         for budget in budgets:
             if filter_by == "category" and budget.category.name == filter_value:
@@ -56,7 +61,8 @@ class BudgetHandler:
     def displayBudgets(self, budgets):
         print("\nBudgets:")
         for budget in budgets:
-            print(budget)
+            print(f"Category: {budget.category.name}, Amount: {budget.amount}, Start Date: {budget.start_date}, End Date: {budget.end_date}")
+
 
     def checkBudgetExceeded(self, expense_handler, category: Category):
         # Calculate total expenses for the selected category
