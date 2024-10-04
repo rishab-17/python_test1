@@ -1,6 +1,8 @@
 import argparse
 import json
 import os
+import sys
+from simple_term_menu import TerminalMenu
 from expense import Expense, save_expense, load_expenses
 from budget import Budget
 from report import generate_monthly_report, plot_ascii_bar_chart
@@ -92,30 +94,29 @@ def generate_report():
 
 
 def cli_menu():
-    """Display a simple terminal-based menu"""
-    while True:
-        print("\n===== Personal Finance Manager =====")
-        print("1. Add an Expense")
-        print("2. View Expenses")
-        print("3. Set a Budget")
-        print("4. Generate Expense Report")
-        print("5. Exit")
-        
-        choice = input("Choose an option (1-5): ")
+    """Display the interactive menu using simple-term-menu"""
+    options = [
+        "1. Add an Expense",
+        "2. View Expenses",
+        "3. Set a Budget",
+        "4. Generate Expense Report",
+        "5. Exit"
+    ]
+    menu = TerminalMenu(options)
 
-        if choice == '1':
+    while True:
+        menu_entry_index = menu.show()
+        if menu_entry_index == 0:
             add_expense()
-        elif choice == '2':
+        elif menu_entry_index == 1:
             view_expenses()
-        elif choice == '3':
+        elif menu_entry_index == 2:
             set_budget()
-        elif choice == '4':
+        elif menu_entry_index == 3:
             generate_report()
-        elif choice == '5':
-            print("Exiting the program...")
+        elif menu_entry_index == 4:
+            print("Exiting...")
             break
-        else:
-            print("Invalid choice. Please choose a valid option.")
 
 
 def main():
