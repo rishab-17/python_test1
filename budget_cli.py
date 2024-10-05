@@ -190,3 +190,125 @@ if __name__ == "__main__":
     budget_handler = BudgetHandler()
 
     expenseMainMenu(expense_handler, budget_handler)
+
+
+
+# simple-term-menu==1.1.0
+# tabulate==0.9.0          
+# matplotlib==3.7.1         
+# mplcursors==0.5.2         
+# shelve                   
+# csv                       
+
+
+import shelve
+from datetime import datetime
+
+class Budget:
+    def __init__(self, category, limit_amount, frequency, period):
+        self.category = category
+        self.limit_amount = limit_amount
+        self.frequency = frequency  # 'monthly' or 'yearly'
+        self.period = period        # month/year value
+
+    def __str__(self):
+        return f"{self.category.name} budget: Rs {self.limit_amount} ({self.frequency.capitalize()} {self.period})"
+
+
+class BudgetHandler:
+    def __init__(self, db_file='data/budget_db'):
+        self.db_file = db_file
+
+    def add_budget(self, budget):
+        with shelve.open(self.db_file) as db:
+            budgets = db.get('budgets', [])
+            budgets.append(budget)
+            db['budgets'] = budgets
+        print("Budget added successfully!")
+
+    def view_budgets(self):
+        with shelve.open(self.db_file) as db:
+            budgets = db.get('budgets', [])
+        if budgets:
+            for budget in budgets:
+                print(budget)
+        else:
+            print("No budgets found.")
+
+    def check_budget_exceeded(self, expense_handler, category):
+        with shelve.open(self.db_file) as db:
+            budgets = db.get('budgets', [])
+        # Get the budget for the category
+        budget = next((b for b in budgets if b.category == category), None)
+
+        if not budget:
+            print(f"No budget set for {category.name}.")
+            return False
+
+        # Sum up expenses for that period and category
+        if budget.frequency == 'monthly':
+            period_filter = datetime.now().strftime("%Y-%m")
+        elif budget.frequency == 'yearly':
+            period_filter = datetime.now().strftime("%Y")
+        
+        total_expenses = sum(
+            expense.amount for expense in expense_handler.getExpensesByCategory(category.name)
+            if expense.date.startswith(period_filter)
+        )
+
+        if total_expenses > budget.limit_amount:
+            print(f"Warning! You have exceeded the budget for {category.name}. Budget: Rs {budget.limit_amount}, Expenses: Rs {total_expenses}")
+            return True
+        else:
+            print(f"Expenses are within the budget for {category.name}. Total spent: Rs {total_expenses}, Limit: Rs {budget.limit_amount}")
+            return False
+
+    def soft_limit_exceed(self, expense_handler, expense):
+        exceeded = self.check_budget_exceeded(expense_handler, expense.category)
+        if exceeded:
+            choice = input("Do you still want to add this expense? (y/n): ").strip().lower()
+            if choice == 'y':
+                expense_handler.addExpense(expense)
+                print("Expense added despite exceeding the budget.")
+            else:
+                print("Expense not added.")
+        else:
+            expense_handler.addExpense(expense)
+
+
+
+
+
+
+
+    def add_budget_menu(budget_handler):
+    while True:
+        options = ["Food", "Transport", "Entertainment", "Bills", "Other", "Back to Main Menu"]
+        menu = TerminalMenu(options, title="Add Budget")
+        choice = menu.show()
+
+        if choice == 5:  # Back to main menu
+            break
+
+        category = Category(choice + 1)
+
+        # User selects the frequency (monthly/yearly)
+        frequency = input("Choose budget type (monthly/yearly): ").strip().lower()
+        if frequency == 'monthly':
+            period = input("Enter the month (e.g. 2024-10): ")
+        elif frequency == 'yearly':
+            period = input("Enter the year (e.g. 2024): ")
+
+        limit_amount = float(input("Enter the budget limit (in Rs): "))
+        budget = Budget(category, limit_amount, frequency, period)
+
+        budget_handler.add_budget(budget)
+
+
+def checkBudgetExceededMenu(budget_handler, expense_handler):
+    options = ["Food", "Transport", "Entertainment", "Bills", "Other"]
+    menu = TerminalMenu(options, title="Check Budget Exceeded")
+    choice = menu.show()
+
+    category = Category(choice + 1)
+    budget_handler.check_budget_exceeded(expense_handler, category)
