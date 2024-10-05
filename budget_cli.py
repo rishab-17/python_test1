@@ -312,3 +312,47 @@ def checkBudgetExceededMenu(budget_handler, expense_handler):
 
     category = Category(choice + 1)
     budget_handler.check_budget_exceeded(expense_handler, category)
+
+
+
+########################################
+
+def check_budget_exceeded(self, expense_handler: ExpenseHandler, category: Category, period: str):
+    """
+    Check if the budget for a given category and period (month/year) has been exceeded.
+    
+    Arguments:
+    expense_handler -- The handler to retrieve expenses.
+    category -- The category for which to check the budget.
+    period -- The period in 'YYYY-MM' (for monthly budget) or 'YYYY' (for yearly budget) format.
+    """
+    
+    # Retrieve the expenses for the given category and period (either monthly or yearly)
+    expenses = expense_handler.viewExpenses(filter_by='category', filter_value=category.name)
+
+    if not expenses:
+        print(f"No expenses found for {category.name} in {period}.")
+        return False
+
+    # Filter expenses by the given period (e.g., '2024-09' or '2024')
+    total_expenses = sum(
+        expense.amount for expense in expenses if expense.date.startswith(period)
+    )
+
+    # Now retrieve the relevant budget from the shelve database
+    with shelve.open(self.db_file) as db:
+        budgets = db.get('budgets', [])
+        # Find the budget for the given category and period
+        budget = next((b for b in budgets if b.category == category and b.period == period), None)
+
+    if not budget:
+        print(f"No budget found for {category.name} in {period}.")
+        return False
+
+    # Compare total expenses with the budget amount
+    if total_expenses > budget.limit_amount:
+        print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} is Rs {total_expenses}. Budget exceeded!")
+        return True
+    else:
+        print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} is Rs {total_expenses}. Budget not exceeded.")
+        return False
