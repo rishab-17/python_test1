@@ -317,42 +317,47 @@ def checkBudgetExceededMenu(budget_handler, expense_handler):
 
 ########################################
 
-def check_budget_exceeded(self, expense_handler: ExpenseHandler, category: Category, period: str):
+def check_budget_exceeded(self, expense_handler: ExpenseHandler, category: Category):
     """
-    Check if the budget for a given category and period (month/year) has been exceeded.
+    Check if the budget for a given category (monthly/yearly) has been exceeded.
     
     Arguments:
     expense_handler -- The handler to retrieve expenses.
     category -- The category for which to check the budget.
-    period -- The period in 'YYYY-MM' (for monthly budget) or 'YYYY' (for yearly budget) format.
     """
     
-    # Retrieve the expenses for the given category and period (either monthly or yearly)
-    expenses = expense_handler.viewExpenses(filter_by='category', filter_value=category.name)
+    # Retrieve the relevant budget for this category from the shelve database
+    with shelve.open(self.db_file) as db:
+        budgets = db.get('budgets', [])
+        # Find the budget for the given category
+        budget = next((b for b in budgets if b.category == category), None)
+
+    if not budget:
+        print(f"No budget found for {category.name}.")
+        return False
+
+    # Determine if the budget is monthly or yearly
+    if budget.frequency == 'monthly':
+        period = datetime.now().strftime("%Y-%m")  # Example: '2024-09' for September 2024
+    elif budget.frequency == 'yearly':
+        period = datetime.now().strftime("%Y")  # Example: '2024' for the entire year
+
+    # Retrieve expenses for the given category
+    expenses = expense_handler.getExpensesByCategory(category.name)
 
     if not expenses:
         print(f"No expenses found for {category.name} in {period}.")
         return False
 
-    # Filter expenses by the given period (e.g., '2024-09' or '2024')
+    # Sum the total expenses for the relevant period (monthly or yearly)
     total_expenses = sum(
         expense.amount for expense in expenses if expense.date.startswith(period)
     )
 
-    # Now retrieve the relevant budget from the shelve database
-    with shelve.open(self.db_file) as db:
-        budgets = db.get('budgets', [])
-        # Find the budget for the given category and period
-        budget = next((b for b in budgets if b.category == category and b.period == period), None)
-
-    if not budget:
-        print(f"No budget found for {category.name} in {period}.")
-        return False
-
-    # Compare total expenses with the budget amount
+    # Compare the total expenses with the budget amount
     if total_expenses > budget.limit_amount:
-        print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} is Rs {total_expenses}. Budget exceeded!")
+        print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} are Rs {total_expenses}. Budget exceeded!")
         return True
     else:
-        print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} is Rs {total_expenses}. Budget not exceeded.")
+        print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} are Rs {total_expenses}. Budget not exceeded.")
         return False
