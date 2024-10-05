@@ -361,3 +361,51 @@ def check_budget_exceeded(self, expense_handler: ExpenseHandler, category: Categ
     else:
         print(f"Budget for {category.name} in {period} is Rs {budget.limit_amount}. Expenses in {period} are Rs {total_expenses}. Budget not exceeded.")
         return False
+
+
+############################################################
+
+def check_budget_exceeded(self, expense_handler: ExpenseHandler, category: Category):
+    """
+    Check if the budget for a given category has been exceeded based on the budget's period (monthly/yearly).
+    
+    Arguments:
+    expense_handler -- The handler to retrieve expenses.
+    category -- The category for which to check the budget.
+    """
+    
+    # Retrieve the relevant budget for this category from the shelve database
+    with shelve.open(self.db_file) as db:
+        budgets = db.get('budgets', [])
+        # Find the budget for the given category
+        budget = next((b for b in budgets if b.category == category), None)
+
+    if not budget:
+        print(f"No budget found for {category.name}.")
+        return False
+
+    # Determine the period based on the budget frequency
+    if budget.frequency == 'monthly':
+        period_filter = budget.period  # e.g., '2024-09' for September 2024
+    elif budget.frequency == 'yearly':
+        period_filter = budget.period  # e.g., '2024' for the entire year
+
+    # Retrieve expenses for the given category
+    expenses = expense_handler.getExpensesByCategory(category.name)
+
+    if not expenses:
+        print(f"No expenses found for {category.name} in {period_filter}.")
+        return False
+
+    # Filter expenses by the budget period
+    total_expenses = sum(
+        expense.amount for expense in expenses if expense.date.startswith(period_filter)
+    )
+
+    # Compare total expenses with the budget amount
+    if total_expenses > budget.limit_amount:
+        print(f"Budget for {category.name} in {period_filter} is Rs {budget.limit_amount}. Expenses in {period_filter} are Rs {total_expenses}. Budget exceeded!")
+        return True
+    else:
+        print(f"Budget for {category.name} in {period_filter} is Rs {budget.limit_amount}. Expenses in {period_filter} are Rs {total_expenses}. Budget not exceeded.")
+        return False
