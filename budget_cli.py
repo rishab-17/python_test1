@@ -458,3 +458,85 @@ def check_budget_exceeded(self, expense_handler: ExpenseHandler, category: Categ
             print(f"Budget for {category.name} in {period_filter} is Rs {budget.limit_amount}. Expenses in {period_filter} are Rs {total_expenses}. Budget not exceeded.")
     
     return True
+
+####################################################
+
+import unittest
+import os
+import shelve
+from constants import Category
+from budget import Budget, BudgetHandler
+
+class TestBudget(unittest.TestCase):
+
+    def setUp(self):
+        """Set up a fresh shelve database for each test."""
+        self.db_file = './data/test_budget_db'
+        self.budget_handler = BudgetHandler(db_file=self.db_file)
+
+        # Ensure test files are reset
+        if os.path.exists(self.db_file):
+            os.remove(self.db_file + '.db')
+
+    def tearDown(self):
+        """Clean up test database after each test."""
+        if os.path.exists(self.db_file):
+            os.remove(self.db_file + '.db')
+
+    def test_add_budget(self):
+        """Test adding a new budget."""
+        budget = Budget(category=Category.FOOD, limit=5000, period="monthly", period_value="2024-10")
+        self.budget_handler.add_budget(budget)
+
+        # Verify that budget was saved in shelve
+        with shelve.open(self.db_file) as db:
+            budgets = db.get('budgets', [])
+            self.assertEqual(len(budgets), 1)
+            self.assertEqual(budgets[0].category, Category.FOOD)
+            self.assertEqual(budgets[0].limit, 5000)
+
+    def test_budget_exceeded(self):
+        """Test checking if a budget is exceeded."""
+        budget = Budget(category=Category.TRANSPORT, limit=2000, period="monthly", period_value="2024-10")
+        self.budget_handler.add_budget(budget)
+
+        # Add some expenses and verify budget check
+        expense_1 = Expense(category=Category.TRANSPORT, amount=1500, date="2024-10-06", description="Bus fare")
+        expense_2 = Expense(category=Category.TRANSPORT, amount=600, date="2024-10-07", description="Taxi fare")
+        self.budget_handler.add_expense(expense_1)
+        self.budget_handler.add_expense(expense_2)
+
+        # Check if budget exceeded
+        exceeded = self.budget_handler.check_budget_exceeded(Category.TRANSPORT)
+        self.assertTrue(exceeded)
+
+    def test_budget_not_exceeded(self):
+        """Test checking if a budget is not exceeded."""
+        budget = Budget(category=Category.FOOD, limit=3000, period="monthly", period_value="2024-10")
+        self.budget_handler.add_budget(budget)
+
+        # Add some expenses and verify budget check
+        expense_1 = Expense(category=Category.FOOD, amount=500, date="2024-10-06", description="Lunch")
+        expense_2 = Expense(category=Category.FOOD, amount=1000, date="2024-10-07", description="Dinner")
+        self.budget_handler.add_expense(expense_1)
+        self.budget_handler.add_expense(expense_2)
+
+        # Check if budget exceeded
+        exceeded = self.budget_handler.check_budget_exceeded(Category.FOOD)
+        self.assertFalse(exceeded)
+
+    def test_view_budgets(self):
+        """Test viewing all budgets."""
+        budget_1 = Budget(category=Category.ENTERTAINMENT, limit=1000, period="yearly", period_value="2024")
+        budget_2 = Budget(category=Category.FOOD, limit=3000, period="monthly", period_value="2024-10")
+        self.budget_handler.add_budget(budget_1)
+        self.budget_handler.add_budget(budget_2)
+
+        # Fetch all budgets and verify
+        budgets = self.budget_handler.view_budgets()
+        self.assertEqual(len(budgets), 2)
+        self.assertEqual(budgets[0].category, Category.ENTERTAINMENT)
+        self.assertEqual(budgets[1].category, Category.FOOD)
+
+if __name__ == '__main__':
+    unittest.main()
